@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { faker } from '@faker-js/faker'
 import { nanoid } from 'nanoid'
 import { useJobs } from './JobsContext'
 
@@ -60,30 +59,136 @@ const CandidatesContext = createContext<CandidatesContextValue | undefined>(unde
 
 const mentionSuggestions = ['@AlexMorgan', '@PriyaVerma', '@JordanSmith', '@ChristianBale', '@RecruitmentOps', '@HiringManager']
 
+const stageSummaries: Record<CandidateStage, string[]> = {
+  applied: ['Application received through campus portal.', 'Applied via employee referral.'],
+  screening: ['Advanced after recruiter screen.', 'Initial screening completed with positive feedback.'],
+  assessment: ['Completed technical assessment with solid feedback.', 'Assessment reviewed by hiring panel.'],
+  interview: ['Panel interview scheduled with hiring manager.', 'Interview feedback pending review.'],
+  offer: ['Offer package drafted for candidate.', 'Negotiation meeting scheduled.'],
+  hired: ['Candidate accepted offer and signed paperwork.', 'Onboarding scheduled for next week.'],
+}
+
+const jobTitles = [
+  'Frontend Engineer',
+  'Backend Engineer',
+  'Product Designer',
+  'Product Manager',
+  'DevOps Specialist',
+  'Data Analyst',
+  'QA Automation Engineer',
+  'Customer Success Lead',
+]
+
+const candidateNames = [
+  'Aditi Sharma',
+  'Noah Fernandez',
+  'Liam Porter',
+  'Saanvi Patel',
+  'Evelyn Brooks',
+  'Mateo Alvarez',
+  'Chloe Nguyen',
+  'Rohan Iyer',
+  'Grace Thompson',
+  'Oliver Chen',
+  'Priya Kapoor',
+  'Samuel Reed',
+]
+
+const locations = [
+  'San Francisco, US',
+  'Toronto, CA',
+  'Berlin, DE',
+  'Bangalore, IN',
+  'Sydney, AU',
+  'Singapore, SG',
+  'London, UK',
+  'Remote',
+]
+
+const experienceHighlights = [
+  '5+ years leading cross-functional product squads.',
+  'Specializes in building accessible design systems.',
+  'Scaled event-driven microservices handling millions of requests daily.',
+  'Championed test automation resulting in 30% faster releases.',
+  'Architected cloud infrastructure with zero-downtime deployments.',
+  'Mentored junior engineers across globally distributed teams.',
+  'Improved conversion funnels through data-informed experimentation.',
+]
+
+const noteSnippets = [
+  'Strong portfolio with clear metrics-driven outcomes.',
+  'Great culture fit; highlighted collaborative mindset.',
+  'Asked insightful questions about roadmap and growth.',
+  'Needs follow-up on compensation expectations.',
+  'Prefers hybrid work model with occasional travel.',
+]
+
+const authorNames = ['Alex', 'Priya', 'Jordan', 'Morgan', 'Taylor', 'Chris']
+
+const pickOne = <T,>(items: readonly T[]): T => items[Math.floor(Math.random() * items.length)]
+
+const pickSome = <T,>(items: readonly T[], { min = 0, max = items.length }: { min?: number; max?: number } = {}): T[] => {
+  const target = Math.floor(Math.random() * (max - min + 1)) + min
+  if (target <= 0) return []
+
+  const shuffled = [...items]
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const rand = Math.floor(Math.random() * (index + 1))
+    ;[shuffled[index], shuffled[rand]] = [shuffled[rand], shuffled[index]]
+  }
+
+  return shuffled.slice(0, target)
+}
+
+const randomRecentDate = (days: number): Date => {
+  const now = new Date()
+  const past = new Date(now)
+  past.setDate(now.getDate() - days)
+  const timestamp = past.getTime() + Math.random() * (now.getTime() - past.getTime())
+  return new Date(timestamp)
+}
+
+const randomSoonDate = (days: number, refDate: Date): Date => {
+  const next = new Date(refDate)
+  const increment = Math.floor(Math.random() * (days + 1)) + 1
+  next.setDate(next.getDate() + increment)
+  return next
+}
+
+const toEmail = (name: string): string => {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/(^\.|\.$)/g, '')
+  return `${slug || 'candidate'}@example.com`
+}
+
+const avatarForName = (name: string): string => {
+  const normalized = name.trim() || 'candidate'
+  const seed = normalized.replace(/\s+/g, '_')
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`
+}
+
 const generateTimeline = (stage: CandidateStage): CandidateTimelineEntry[] => {
-  const appliedDate = faker.date.recent({ days: 40 })
+  const appliedDate = randomRecentDate(40)
   const timeline: CandidateTimelineEntry[] = [
     {
       id: nanoid(),
       date: appliedDate.toISOString(),
       stage: 'applied',
-      summary: 'Application received through campus portal.',
+      summary: pickOne(stageSummaries.applied),
     },
   ]
 
   const stageIndex = candidateStages.indexOf(stage)
   let currentDate = appliedDate
   for (let index = 1; index <= stageIndex; index += 1) {
-    currentDate = faker.date.soon({ days: 4, refDate: currentDate })
+    currentDate = randomSoonDate(4, currentDate)
     timeline.push({
       id: nanoid(),
       date: currentDate.toISOString(),
       stage: candidateStages[index],
-      summary: faker.helpers.arrayElement([
-        'Advanced after recruiter screen.',
-        'Panel interview scheduled with hiring manager.',
-        'Completed technical assessment with solid feedback.',
-      ]),
+      summary: pickOne(stageSummaries[candidateStages[index]]),
     })
   }
 
@@ -114,25 +219,26 @@ const seedCandidatesForJob = (jobId: string, count: number): CandidateRecord[] =
 
   return Array.from({ length: count }, () => {
     const stage = weightedStage()
+    const name = pickOne(candidateNames)
     return {
       id: nanoid(),
       jobId,
-      name: faker.person.fullName(),
-      email: faker.internet.email(),
-      headline: faker.person.jobTitle(),
-      location: `${faker.location.city()}, ${faker.location.countryCode()}`,
-      avatarUrl: faker.image.avatarGitHub(),
-      experience: faker.lorem.sentence({ min: 6, max: 12 }),
+      name,
+      email: toEmail(name),
+      headline: pickOne(jobTitles),
+      location: pickOne(locations),
+      avatarUrl: avatarForName(name),
+      experience: pickOne(experienceHighlights),
       stage,
-      appliedAt: faker.date.recent({ days: 45 }).toISOString(),
+      appliedAt: randomRecentDate(45).toISOString(),
       timeline: generateTimeline(stage),
       notes: [
         {
           id: nanoid(),
-          author: faker.person.firstName(),
-          content: faker.lorem.sentence({ min: 8, max: 16 }),
-          createdAt: faker.date.recent({ days: 8 }).toISOString(),
-          mentions: faker.helpers.arrayElements(mentionSuggestions, { min: 0, max: 2 }),
+          author: pickOne(authorNames),
+          content: pickOne(noteSnippets),
+          createdAt: randomRecentDate(8).toISOString(),
+          mentions: pickSome(mentionSuggestions, { min: 0, max: 2 }),
         },
       ],
     }
