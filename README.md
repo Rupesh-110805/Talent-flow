@@ -107,7 +107,20 @@ Vitest and Testing Library were removed temporarily to stabilise the build. Rein
 
 5. Open a pull request on GitHub, request review, and merge.
 
-## 📝 Troubleshooting
+## � Deployment (GitHub Pages)
+
+The repository includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds the Vite app and publishes the contents of `dist/` to GitHub Pages.
+
+1. In the GitHub repository settings, enable **Pages** with the "GitHub Actions" source.
+2. Push to `main` (or trigger the workflow manually). The action will:
+   - Install dependencies with `npm ci`
+   - Run `npm run build`
+   - Upload the build output and deploy it to GitHub Pages
+3. Your site will be reachable at `https://<your-username>.github.io/Talent-flow/` once the workflow completes.
+
+> The Vite `base` path is configured automatically for production builds so assets resolve correctly on Pages. Local development still runs at the root URL.
+
+## �📝 Troubleshooting
 
 - **Redirected back to login on the builder** – log in as a recruiter on `/login`. Clearing storage resets the saved role.
 - **Infinite render or snapshot warnings** – ensure Zustand selectors use `useShallow` and only update store state within effects or event handlers.
